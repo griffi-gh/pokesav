@@ -1,7 +1,7 @@
 import sys
 import time
 import os
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets #,QtCore
 import design
 
 addrmap = {
@@ -132,12 +132,19 @@ charmap={
 
 sav=ram=None
 
-def fixchecksum(sv):
+def binstr(val):
+    return '{0:08b}'.format(val)
+
+def checksum(sv):
     chs=0xff
     for v in sv[0x2598:0x3523]:
         chs-=v
-    fin=chs&0xff
-    sv[0x3523]=fin    
+    return chs&0xff
+
+def fixchecksum(sv):
+    fin=checksum(sv)
+    sv[0x3523]=fin
+    return fin
 
 def save(sav2,ram2):
     sav2.seek(0,0)
@@ -152,13 +159,18 @@ class qtApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+        self.setWindowTitle('pokesav')
         self.pushButton.clicked.connect(self.browse)
+        self.listWidget.itemDoubleClicked.connect(self.edit)
     def browse(self):
-        #QtWidgets.QFileDialog.getExistingDirectory(self, "Select directory")
+        self.listWidget.clear()
         fname = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '/home')[0]
         if fname:
             sav,ram = load(fname)
-            self.listWidget.addItem(fname+' selected')
+            self.listWidget.addItem(fname)
+            
+    def edit(self,item):
+        print(item.text())
         
 def main():
     app = QtWidgets.QApplication(sys.argv)
