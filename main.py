@@ -4,6 +4,7 @@ import os
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QDialog
 import design
+import math
 
 addrmap = {
     'pname':[0x2598,0xb],
@@ -13,6 +14,7 @@ addrmap = {
 
 charmap={
     '':0x00, #Nothing
+    ' ':0x00, #Space
     '<page>':0x49, #Begins a new Pokedex page
     '<PKMN>':0x4a, #Prints <PK><MN>
     '<_cont>':0x4b, #Stops and waits for confirmation before scrolling the dialogue down by 1
@@ -134,8 +136,14 @@ charmap={
 global sav
 global ram
 
+def isvalid(lst,ind):
+    return(0 <= ind < len(lst))
+
 def binstr(val):
     return '{0:08b}'.format(val)
+
+def hexstr(h):
+    return "{:02x}".format(h)
 
 def dval(d,v):
     return list(d.keys())[list(d.values()).index(v)]
@@ -144,6 +152,15 @@ def dval(d,v):
 
 def h2c(hexv):
     return str(dval(charmap,hexv))
+
+#
+#def bcd_decode(values):
+#    groups=[]
+#    for i in range(len(values)):
+#        byte=binstr(values[i])
+#        groups.append(byte[0:4])
+#        groups.append(byte[4:8])
+#
 
 def topkhex(st):
     hexv=[]
@@ -212,6 +229,33 @@ def loadfile(file):
     ramrd=bytearray(savrd.read())
     return ramrd,savrd
 
+def getmoney(sv):
+    mo=readram(ram,addrmap['money'])
+    moval=''
+    for i in range(len(mo)):
+        moval+=hexstr(mo[i])
+    return int(moval)
+
+def setmoney(sv,v): #BROKEN!!
+    st=str(v)
+    am=addrmap['money']
+    #left=am[1]-math.floor(len(st)/2)
+    fin=[]
+    for j in range(len(st),0,-2):
+        i=j-1
+        pr=st[i]
+        pl='0'
+        if isvalid(st,i-1):
+            pl=st[i-1]
+        num=int(pl+pr,16)
+        fin.append(num)
+    for i in range(3):
+        if len(fin)<3:
+            fin.append(0x00)
+    fin=fin[::-1] 
+    #print(fin)
+    writeRam(ram,fin,am)
+    
 sys._excepthook = sys.excepthook 
 def exception_hook(exctype, value, traceback):
     print(exctype, value, traceback)
@@ -219,39 +263,41 @@ def exception_hook(exctype, value, traceback):
     sys.exit(1) 
 sys.excepthook = exception_hook
 
-buttons=['Save','Change player name']
-            
+buttons=['Save','Change name']
+
 class qtApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle('pokesav')
-        self.pushButton.clicked.connect(self.browse)
-        self.listWidget.itemDoubleClicked.connect(self.edit)
+        self.actionOpen.triggered.connect(self.browse)
+        self.actionSave_2.triggered.connect(self.savebtn)
+        self.NameInput.textChanged.connect(self.changeName)
+        self.MoneySpinbox.valueChanged.connect(self.setMoney)
     def inp(self,a='Set value',b='Enter new value:'):
         return QInputDialog.getText(self,a,b)
     def browse(self):
-        self.listWidget.clear()
         fname = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '/')[0]
         if fname:
             global ram
             global sav
             ram,sav = loadfile(fname)
-            self.listWidget.addItem(fname)
-            self.listWidget.addItem(buttons[0])
-            self.listWidget.addItem(buttons[1])
-            self.listWidget.addItem('Current name:'+readramStr(ram,addrmap['pname']))
-    def edit(self,item):
-        if item.text()==buttons[0]:
+            self.NameInput.setText(readramStr(ram,addrmap['pname']))
+            self.MoneySpinbox.setValue(getmoney(ram))
+    def savebtn(self):
+        if 'ram' in globals():
             fixchecksum(ram)
             save(sav,ram)
-        elif item.text()==buttons[1]:
-            t,o=self.inp()
-            if o:
-                t=t+'<end>'
-                writeRam(ram,topkhex(t),addrmap['pname'])
-            
-                
+    def changeName(self):
+        if 'ram' in globals():
+            writeRam(ram,topkhex(self.NameInput.text()),addrmap['pname'])
+        else:
+            self.NameInput.setText('')
+    def setMoney(self):
+        if 'ram' in globals():
+            setmoney(ram,self.MoneySpinbox.value())
+        else:
+            self.MoneySpinbox.setValue(0)
         
 def main():
     app = QtWidgets.QApplication(sys.argv)
