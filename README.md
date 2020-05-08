@@ -3,6 +3,7 @@
 Pokemon (GEN1) save editor
 
 ### Special characters
+  ```
   <page> Begins a new Pokedex page
   <PKMN> Prints <PK><MN>
   <_cont> Stops and waits for confirmation before scrolling the dialogue down by 1
@@ -32,4 +33,14 @@ Pokemon (GEN1) save editor
   <'m> Prints 'm as one character
   <PK> Prints PK as one character
   <MN> Prints MN as one character
-  
+  ァ 
+  ゥ 
+  ェ
+  ▷
+  ▶
+  ▼
+  ♂
+  ₽
+  ×
+  ♀
+  ```
