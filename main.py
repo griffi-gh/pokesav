@@ -1,13 +1,14 @@
 import sys
 import time
 import os
-from PyQt5 import QtWidgets #,QtCore
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QInputDialog, QLineEdit, QDialog
 import design
 
 addrmap = {
-    'pname':{0x2598,0xB},
-    'money':{0x25F3,0x3},
-    'checksum':{0x3523,0x1},
+    'pname':[0x2598,0xb],
+    'money':[0x25F3,0x3],
+    'checksum':[0x3523,0x1]
 }
 
 charmap={
@@ -22,7 +23,7 @@ charmap={
     '<player>':0x52, #Prints player name
     '<rival>':0x53, #Prints rival name
     '<poke>':0x54, #Prints Poké
-    '<......>':0x56, #Prints 2 ellipses, "……"
+    '<......>':0x56, #Prints 2 ellipses, "……" (2sym)
     '<done>':0x57, #Ends text box
     '<promt>':0x58, #Prompts to end textbox
     '<target>':0x59, #Prints target pokemon in battle
@@ -127,13 +128,70 @@ charmap={
     '6':0xfc,
     '7':0xfd,
     '8':0xfe,
-    '9':0xff,
+    '9':0xff
 }
 
-sav=ram=None
+global sav
+global ram
 
 def binstr(val):
     return '{0:08b}'.format(val)
+
+def dval(d,v):
+    return list(d.keys())[list(d.values()).index(v)]
+    
+#def setv(sv,ma,value):
+
+def h2c(hexv):
+    return str(dval(charmap,hexv))
+
+def topkhex(st):
+    hexv=[]
+    special=False
+    spec=''
+    for i in range(len(st)):
+        if st[i]=='>':
+            special=False
+            hexv.append(charmap['<'+spec+'>'])
+            continue
+        
+        if st[i]=='<':
+            special=True
+            spec=''
+            continue
+        
+        if special:
+            spec+=st[i]
+        else:
+            hexv.append(charmap[st[i]])
+            
+            
+def readram(sv,m):
+    value=[]
+    for x in range(m[0],m[0]+m[1]):
+        value.append(sv[x])
+    return value
+
+def readramStr(sv,m):
+    raw=readram(sv,m)
+    out=''
+    for x in range(len(raw)):
+        out+=h2c(raw[x])
+    return out
+
+def writeRam(sv,v,m,asString,NoOverwrite):
+    if asString:
+        v=topkhex(v)
+    vlen=len(v)
+    x=0
+    for i in range(m[0],m[0]+m[1]):
+        if x<vlen:
+            val=v[x]
+            sv[i]=v[x]
+        else:
+            if not(NoOverwrite):
+                sv[i]=0x0
+        x+=1
 
 def checksum(sv):
     chs=0xff
@@ -150,11 +208,20 @@ def save(sav2,ram2):
     sav2.seek(0,0)
     sav2.write(ram2)
 
-def load(file):
-    sav=open(file,'rb+')
-    ram=bytearray(sav.read())
-    return sav,ram
+def loadfile(file):
+    savrd=open(file,'rb+')
+    ramrd=bytearray(savrd.read())
+    return ramrd,savrd
 
+sys._excepthook = sys.excepthook 
+def exception_hook(exctype, value, traceback):
+    print(exctype, value, traceback)
+    sys._excepthook(exctype, value, traceback) 
+    sys.exit(1) 
+sys.excepthook = exception_hook
+
+buttons=['Save','Change player name']
+            
 class qtApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self):
         super().__init__()
@@ -162,15 +229,27 @@ class qtApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
         self.setWindowTitle('pokesav')
         self.pushButton.clicked.connect(self.browse)
         self.listWidget.itemDoubleClicked.connect(self.edit)
+    def inp(self,a='Set value',b='Enter new value:'):
+        return QInputDialog.getText(self,a,b)
     def browse(self):
         self.listWidget.clear()
-        fname = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '/home')[0]
+        fname = QtWidgets.QFileDialog.getOpenFileName(self, 'Open file', '/')[0]
         if fname:
-            sav,ram = load(fname)
+            global ram
+            global sav
+            ram,sav = loadfile(fname)
             self.listWidget.addItem(fname)
-            
+            self.listWidget.addItem(buttons[0])
+            self.listWidget.addItem(buttons[1])
+            self.listWidget.addItem(readramStr(ram,addrmap['pname']))
     def edit(self,item):
-        print(item.text())
+        if item.text()==buttons[0]:
+            fixchecksum(ram)
+            save(sav,ram)
+        elif item.text()==buttons[1]:
+            t,o=self.inp()
+            
+                
         
 def main():
     app = QtWidgets.QApplication(sys.argv)
