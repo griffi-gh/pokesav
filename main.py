@@ -164,6 +164,7 @@ def topkhex(st):
             spec+=st[i]
         else:
             hexv.append(charmap[st[i]])
+    return hexv
             
             
 def readram(sv,m):
@@ -179,9 +180,7 @@ def readramStr(sv,m):
         out+=h2c(raw[x])
     return out
 
-def writeRam(sv,v,m,asString,NoOverwrite):
-    if asString:
-        v=topkhex(v)
+def writeRam(sv,v,m,nowr=False):
     vlen=len(v)
     x=0
     for i in range(m[0],m[0]+m[1]):
@@ -189,7 +188,7 @@ def writeRam(sv,v,m,asString,NoOverwrite):
             val=v[x]
             sv[i]=v[x]
         else:
-            if not(NoOverwrite):
+            if not(nowr):
                 sv[i]=0x0
         x+=1
 
@@ -241,13 +240,16 @@ class qtApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             self.listWidget.addItem(fname)
             self.listWidget.addItem(buttons[0])
             self.listWidget.addItem(buttons[1])
-            self.listWidget.addItem(readramStr(ram,addrmap['pname']))
+            self.listWidget.addItem('Current name:'+readramStr(ram,addrmap['pname']))
     def edit(self,item):
         if item.text()==buttons[0]:
             fixchecksum(ram)
             save(sav,ram)
         elif item.text()==buttons[1]:
             t,o=self.inp()
+            if o:
+                t=t+'<end>'
+                writeRam(ram,topkhex(t),addrmap['pname'])
             
                 
         
