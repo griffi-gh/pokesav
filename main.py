@@ -5,7 +5,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QDialog
 import design
 import math
-version=3
+version=3.1
 
 addrmap = {
     'pname':[0x2598,0xb],
@@ -171,14 +171,20 @@ def topkhex(st):
     hexv=[]
     special=False
     spec=''
+    er=0
     for i in range(len(st)):
         if st[i]=='>':
             special=False
-            if '0x' in spec:
-                hexv.append(spec)
-            else:
-                hexv.append(charmap['<'+spec+'>'])
-            continue
+            try:
+                if '0x' in spec:
+                    int(spec,16)
+                    hexv.append(spec)
+                else:
+                    hexv.append(charmap['<'+spec+'>'])
+                continue
+            except:
+                er+=1
+                pass 
         if st[i]=='<':
             special=True
             spec=''
@@ -186,7 +192,13 @@ def topkhex(st):
         if special:
             spec+=str(st[i])
         else:
-            hexv.append(charmap[st[i]])
+            try:
+                hexv.append(charmap[st[i]])
+            except:
+                er+=1
+                pass
+    if er>0:
+        print('topkhex '+str(er)+' error(s) on string "'+str(st)+'"\noutput is:'+str(hexv)+'\n')
     return hexv
             
             
@@ -276,7 +288,7 @@ class qtApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle('Pokesav v.'+str(version))
+        self.setWindowTitle('Pokesav v'+str(version))
         self.actionOpen.triggered.connect(self.browse)
         self.actionSave_2.triggered.connect(self.savebtn)
         self.NameInput.textChanged.connect(self.changeName)
