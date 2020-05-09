@@ -5,6 +5,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QInputDialog, QLineEdit, QDialog
 import design
 import math
+version=3
 
 addrmap = {
     'pname':[0x2598,0xb],
@@ -13,7 +14,7 @@ addrmap = {
 }
 
 charmap={
-    '':0x00, #Nothing
+    #'':0x00, #Nothing
     ' ':0x00, #Space
     '<page>':0x49, #Begins a new Pokedex page
     '<PKMN>':0x4a, #Prints <PK><MN>
@@ -151,7 +152,11 @@ def dval(d,v):
 #def setv(sv,ma,value):
 
 def h2c(hexv):
-    return str(dval(charmap,hexv))
+    try:
+        value=dval(charmap,hexv)
+        return str(value)
+    except ValueError:
+        return '<'+hex(hexv)+'>'
 
 #
 #def bcd_decode(values):
@@ -169,16 +174,17 @@ def topkhex(st):
     for i in range(len(st)):
         if st[i]=='>':
             special=False
-            hexv.append(charmap['<'+spec+'>'])
+            if '0x' in spec:
+                hexv.append(spec)
+            else:
+                hexv.append(charmap['<'+spec+'>'])
             continue
-        
         if st[i]=='<':
             special=True
             spec=''
             continue
-        
         if special:
-            spec+=st[i]
+            spec+=str(st[i])
         else:
             hexv.append(charmap[st[i]])
     return hexv
@@ -203,7 +209,9 @@ def writeRam(sv,v,m,nowr=False):
     for i in range(m[0],m[0]+m[1]):
         if x<vlen:
             val=v[x]
-            sv[i]=v[x]
+            if not isinstance(v[x], (float, int)):
+                val=int(val,16)
+            sv[i]=val
         else:
             if not(nowr):
                 sv[i]=0x0
@@ -236,10 +244,9 @@ def getmoney(sv):
         moval+=hexstr(mo[i])
     return int(moval)
 
-def setmoney(sv,v): #BROKEN!!
+def setmoney(sv,v): 
     st=str(v)
     am=addrmap['money']
-    #left=am[1]-math.floor(len(st)/2)
     fin=[]
     for j in range(len(st),0,-2):
         i=j-1
@@ -249,8 +256,8 @@ def setmoney(sv,v): #BROKEN!!
             pl=st[i-1]
         num=int(pl+pr,16)
         fin.append(num)
-    for i in range(3):
-        if len(fin)<3:
+    for i in range(am[1]):
+        if len(fin)<am[1]:
             fin.append(0x00)
     fin=fin[::-1] 
     #print(fin)
@@ -269,7 +276,7 @@ class qtApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle('pokesav')
+        self.setWindowTitle('Pokesav v.'+str(version))
         self.actionOpen.triggered.connect(self.browse)
         self.actionSave_2.triggered.connect(self.savebtn)
         self.NameInput.textChanged.connect(self.changeName)
@@ -282,7 +289,7 @@ class qtApp(QtWidgets.QMainWindow, design.Ui_MainWindow):
             global ram
             global sav
             ram,sav = loadfile(fname)
-            self.NameInput.setText(readramStr(ram,addrmap['pname']))
+            self.NameInput.setText(readramStr(ram,addrmap['pname']).rstrip())
             self.MoneySpinbox.setValue(getmoney(ram))
     def savebtn(self):
         if 'ram' in globals():
