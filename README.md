@@ -4,6 +4,7 @@ Pokemon (GEN1) save editor
 
 ### Special characters
   ```
+  <0x**> (Version 3+ only) Add character by hex value
   <page> Begins a new Pokedex page
   <PKMN> Prints <PK><MN>
   <_cont> Stops and waits for confirmation before scrolling the dialogue down by 1
