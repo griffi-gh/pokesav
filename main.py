@@ -15,6 +15,7 @@ addrmap = {
 
 charmap={
     '':0x00, #Nothing
+    ' ':0x7f, #Space
     '<page>':0x49, #Begins a new Pokedex page
     '<PKMN>':0x4a, #Prints <PK><MN>
     '<_cont>':0x4b, #Stops and waits for confirmation before scrolling the dialogue down by 1
@@ -35,7 +36,6 @@ charmap={
     '<TRAINER>':0x5d, #Prints TRAINER
     '<ROCKET>':0x5e, #Prints ROCKET
     '<dex>':0x5f, #Displays a period and ends the Pokédex entry
-    ' ':0x7f, #Space
     'A':0x80,
     'B':0x81,
     'C':0x82,
